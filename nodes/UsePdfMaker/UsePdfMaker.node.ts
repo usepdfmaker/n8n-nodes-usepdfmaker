@@ -54,56 +54,34 @@ export class UsePdfMaker implements INodeType {
 				],
 				default: 'htmlToPdf',
 			},
-
-			// HTML TO PDF
 			{
 				displayName: 'HTML Content',
 				name: 'html',
 				type: 'string',
-				typeOptions: {
-					rows: 10,
-				},
+				typeOptions: { rows: 10 },
 				default: '',
 				required: true,
-				displayOptions: {
-					show: {
-						operation: ['htmlToPdf'],
-					},
-				},
+				displayOptions: { show: { operation: ['htmlToPdf'] } },
 				description: 'The HTML content to convert to PDF',
 			},
-
-			// URL TO PDF
 			{
 				displayName: 'URL',
 				name: 'url',
 				type: 'string',
 				default: '',
 				required: true,
-				displayOptions: {
-					show: {
-						operation: ['urlToPdf'],
-					},
-				},
+				displayOptions: { show: { operation: ['urlToPdf'] } },
 				description: 'The URL to convert to PDF',
 			},
-
-			// DOCUMENT TO PDF
 			{
 				displayName: 'Input Binary Field',
 				name: 'binaryPropertyName',
 				type: 'string',
 				default: 'data',
 				required: true,
-				displayOptions: {
-					show: {
-						operation: ['documentToPdf'],
-					},
-				},
+				displayOptions: { show: { operation: ['documentToPdf'] } },
 				description: 'Name of the binary field containing the document to convert',
 			},
-
-			// COMMON OPTIONS
 			{
 				displayName: 'Options',
 				name: 'options',
@@ -154,10 +132,7 @@ export class UsePdfMaker implements INodeType {
 				landscape?: boolean;
 				outputBinaryPropertyName?: string;
 			};
-
 			const outputField = options.outputBinaryPropertyName || 'data';
-			const credentials = await this.getCredentials('usePdfMakerApi');
-			const apiKey = credentials.apiKey as string;
 
 			let responseData: Buffer;
 
@@ -165,46 +140,48 @@ export class UsePdfMaker implements INodeType {
 				if (operation === 'htmlToPdf') {
 					const html = this.getNodeParameter('html', i) as string;
 
-					const response = await this.helpers.httpRequest({
-						method: 'POST',
-						url: 'https://api.usepdfmaker.com/v1/convert/html',
-						headers: {
-							Authorization: `Bearer ${apiKey}`,
-							'Content-Type': 'application/json',
-						},
-						body: {
-							html,
-							options: {
-								format: options.pageSize || 'A4',
-								landscape: options.landscape || false,
+					const response = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'usePdfMakerApi',
+						{
+							method: 'POST',
+							url: 'https://api.usepdfmaker.com/v1/convert/html',
+							headers: { 'Content-Type': 'application/json' },
+							body: {
+								html,
+								options: {
+									format: options.pageSize || 'A4',
+									landscape: options.landscape || false,
+								},
 							},
+							encoding: 'arraybuffer',
+							returnFullResponse: false,
 						},
-						encoding: 'arraybuffer',
-						returnFullResponse: false,
-					});
+					);
 
 					responseData = Buffer.from(response as ArrayBuffer);
 
 				} else if (operation === 'urlToPdf') {
 					const url = this.getNodeParameter('url', i) as string;
 
-					const response = await this.helpers.httpRequest({
-						method: 'POST',
-						url: 'https://api.usepdfmaker.com/v1/convert/url',
-						headers: {
-							Authorization: `Bearer ${apiKey}`,
-							'Content-Type': 'application/json',
-						},
-						body: {
-							url,
-							options: {
-								format: options.pageSize || 'A4',
-								landscape: options.landscape || false,
+					const response = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'usePdfMakerApi',
+						{
+							method: 'POST',
+							url: 'https://api.usepdfmaker.com/v1/convert/url',
+							headers: { 'Content-Type': 'application/json' },
+							body: {
+								url,
+								options: {
+									format: options.pageSize || 'A4',
+									landscape: options.landscape || false,
+								},
 							},
+							encoding: 'arraybuffer',
+							returnFullResponse: false,
 						},
-						encoding: 'arraybuffer',
-						returnFullResponse: false,
-					});
+					);
 
 					responseData = Buffer.from(response as ArrayBuffer);
 
@@ -213,25 +190,26 @@ export class UsePdfMaker implements INodeType {
 					const binaryData = this.helpers.assertBinaryData(i, binaryPropertyName);
 					const fileBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
 
-					const response = await this.helpers.httpRequest({
-						method: 'POST',
-						url: 'https://api.usepdfmaker.com/v1/convert/document',
-						headers: {
-							Authorization: `Bearer ${apiKey}`,
-							'Content-Type': 'multipart/form-data',
-						},
-						body: {
-							file: {
-								value: fileBuffer,
-								options: {
-									filename: binaryData.fileName || 'document',
-									contentType: binaryData.mimeType,
+					const response = await this.helpers.httpRequestWithAuthentication.call(
+						this,
+						'usePdfMakerApi',
+						{
+							method: 'POST',
+							url: 'https://api.usepdfmaker.com/v1/convert/document',
+							headers: { 'Content-Type': 'multipart/form-data' },
+							body: {
+								file: {
+									value: fileBuffer,
+									options: {
+										filename: binaryData.fileName || 'document',
+										contentType: binaryData.mimeType,
+									},
 								},
 							},
+							encoding: 'arraybuffer',
+							returnFullResponse: false,
 						},
-						encoding: 'arraybuffer',
-						returnFullResponse: false,
-					});
+					);
 
 					responseData = Buffer.from(response as ArrayBuffer);
 
@@ -247,9 +225,7 @@ export class UsePdfMaker implements INodeType {
 
 				returnData.push({
 					json: { success: true, operation },
-					binary: {
-						[outputField]: binaryOutput,
-					},
+					binary: { [outputField]: binaryOutput },
 				});
 
 			} catch (error) {
