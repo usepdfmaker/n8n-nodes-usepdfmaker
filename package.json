@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-usepdfmaker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "n8n community node for UsePDFMaker — PDF conversion API",
   "keywords": [
     "n8n-community-node-package",
@@ -19,6 +19,11 @@
     "type": "git",
     "url": "git+https://github.com/usepdfmaker/n8n-nodes-usepdfmaker.git"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "index.js",
   "scripts": {
     "build": "tsc && cp -r nodes/UsePdfMaker/usepdfmaker.svg dist/nodes/UsePdfMaker/",
@@ -35,8 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "n8n-workflow": "^2.16.0",
+    "n8n-workflow": "^1.0.0",
     "typescript": "^5.0.0"
-  },
-  "files": "[\"dist\", \"nodes\", \"credentials\", \"package.json\", \"README.md\", \"LICENSE\"]"
+  }
 }
