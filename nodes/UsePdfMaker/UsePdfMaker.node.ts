@@ -113,44 +113,49 @@ export class UsePdfMaker implements INodeType {
 			const outputField = options.outputBinaryPropertyName || 'data';
 
 			try {
-				let formData: Record<string, unknown> = {};
+				let requestOptions: Record<string, unknown> = {};
 
 				if (operation === 'htmlToPdf') {
 					const html = this.getNodeParameter('html', i) as string;
-					const htmlBuffer = Buffer.from(html, 'utf-8');
-					formData = {
-						files: {
-							value: htmlBuffer,
-							options: {
-								filename: 'index.html',
-								contentType: 'text/html',
-							},
+					const base64 = Buffer.from(html, 'utf-8').toString('base64');
+					requestOptions = {
+						method: 'POST',
+						url: 'https://api.usepdfmaker.com/v1/convert',
+						headers: { 'Content-Type': 'application/json' },
+						body: {
+							file: base64,
+							filename: 'index.html',
 						},
+						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					};
 				} else if (operation === 'urlToPdf') {
 					const url = this.getNodeParameter('url', i) as string;
-					const urlBuffer = Buffer.from(url, 'utf-8');
-					formData = {
-						files: {
-							value: urlBuffer,
-							options: {
-								filename: 'url.txt',
-								contentType: 'text/plain',
-							},
+					requestOptions = {
+						method: 'POST',
+						url: 'https://api.usepdfmaker.com/v1/convert',
+						headers: { 'Content-Type': 'application/json' },
+						body: {
+							url,
 						},
+						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					};
 				} else if (operation === 'documentToPdf') {
 					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
 					const binaryData = this.helpers.assertBinaryData(i, binaryPropertyName);
 					const fileBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-					formData = {
-						files: {
-							value: fileBuffer,
-							options: {
-								filename: binaryData.fileName || 'document.docx',
-								contentType: binaryData.mimeType,
-							},
+					const base64 = fileBuffer.toString('base64');
+					requestOptions = {
+						method: 'POST',
+						url: 'https://api.usepdfmaker.com/v1/convert',
+						headers: { 'Content-Type': 'application/json' },
+						body: {
+							file: base64,
+							filename: binaryData.fileName || 'document.docx',
 						},
+						encoding: 'arraybuffer',
+						returnFullResponse: true,
 					};
 				} else {
 					throw new NodeOperationError(this.getNode(), `Unknown operation: ${operation}`);
@@ -159,25 +164,10 @@ export class UsePdfMaker implements INodeType {
 				const response = await this.helpers.httpRequestWithAuthentication.call(
 					this,
 					'usePdfMakerApi',
-					{
-						method: 'POST',
-						url: 'https://api.usepdfmaker.com/v1/convert',
-						headers: { 'Content-Type': 'multipart/form-data' },
-						body: formData,
-						encoding: 'arraybuffer',
-						returnFullResponse: true,
-					},
+					requestOptions as never,
 				);
 
 				const fullResponse = response as { body: ArrayBuffer; statusCode: number };
-
-				if (fullResponse.statusCode !== 200) {
-					throw new NodeOperationError(
-						this.getNode(),
-						`API returned status ${fullResponse.statusCode}`,
-					);
-				}
-
 				const responseData = Buffer.from(fullResponse.body);
 
 				const binaryOutput = await this.helpers.prepareBinaryData(
