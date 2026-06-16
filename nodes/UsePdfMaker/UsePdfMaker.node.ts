@@ -122,10 +122,7 @@ export class UsePdfMaker implements INodeType {
 						method: 'POST',
 						url: 'https://api.usepdfmaker.com/v1/convert',
 						headers: { 'Content-Type': 'application/json' },
-						body: {
-							file: base64,
-							filename: 'index.html',
-						},
+						body: { file: base64, filename: 'index.html' },
 						encoding: 'arraybuffer',
 						returnFullResponse: true,
 					};
@@ -135,9 +132,7 @@ export class UsePdfMaker implements INodeType {
 						method: 'POST',
 						url: 'https://api.usepdfmaker.com/v1/convert',
 						headers: { 'Content-Type': 'application/json' },
-						body: {
-							url,
-						},
+						body: { url },
 						encoding: 'arraybuffer',
 						returnFullResponse: true,
 					};
@@ -172,9 +167,11 @@ export class UsePdfMaker implements INodeType {
 
 				const binaryOutput = await this.helpers.prepareBinaryData(
 					responseData,
-					'output',
+					'output.pdf',
 					'application/pdf',
 				);
+				binaryOutput.fileExtension = 'pdf';
+				binaryOutput.fileName = 'output.pdf';
 
 				returnData.push({
 					json: { success: true, operation },
