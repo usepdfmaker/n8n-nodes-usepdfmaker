@@ -172,7 +172,7 @@ export class UsePdfMaker implements INodeType {
 
 				const binaryOutput = await this.helpers.prepareBinaryData(
 					responseData,
-					'output.pdf',
+					'output',
 					'application/pdf',
 				);
 
