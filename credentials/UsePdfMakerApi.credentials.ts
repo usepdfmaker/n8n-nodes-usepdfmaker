@@ -35,7 +35,7 @@ export class UsePdfMakerApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: 'https://api.usepdfmaker.com',
-			url: '/v1/credits',
+			url: '/v1/usage',
 			method: 'GET',
 		},
 	};
