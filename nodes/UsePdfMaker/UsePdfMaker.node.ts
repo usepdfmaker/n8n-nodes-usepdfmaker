@@ -6,6 +6,64 @@ import {
 	NodeOperationError,
 } from 'n8n-workflow';
 
+const API_BASE_URL = 'https://api.usepdfmaker.com';
+
+function isPdfBuffer(buffer: Buffer): boolean {
+	return buffer.length >= 4 && buffer.subarray(0, 4).toString('ascii') === '%PDF';
+}
+
+async function resolvePdfBuffer(
+	this: IExecuteFunctions,
+	postBody: Buffer,
+): Promise<Buffer> {
+	if (isPdfBuffer(postBody)) {
+		return postBody;
+	}
+
+	let parsed: { pdf_url?: string };
+	try {
+		parsed = JSON.parse(postBody.toString('utf-8')) as { pdf_url?: string };
+	} catch {
+		throw new NodeOperationError(
+			this.getNode(),
+			'UsePDFMaker convert response is neither PDF bytes nor JSON with pdf_url.',
+		);
+	}
+
+	const pdfUrl = typeof parsed.pdf_url === 'string' ? parsed.pdf_url.trim() : '';
+	if (!pdfUrl) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'UsePDFMaker convert response JSON is missing pdf_url.',
+		);
+	}
+
+	const downloadUrl = pdfUrl.startsWith('http')
+		? pdfUrl
+		: `${API_BASE_URL}${pdfUrl.startsWith('/') ? pdfUrl : `/${pdfUrl}`}`;
+
+	const downloadResponse = await this.helpers.httpRequestWithAuthentication.call(
+		this,
+		'usePdfMakerApi',
+		{
+			method: 'GET',
+			url: downloadUrl,
+			encoding: 'arraybuffer',
+			returnFullResponse: true,
+		} as never,
+	);
+
+	const pdfBuffer = Buffer.from((downloadResponse as { body: ArrayBuffer }).body);
+	if (!isPdfBuffer(pdfBuffer)) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'UsePDFMaker PDF download did not return valid PDF bytes.',
+		);
+	}
+
+	return pdfBuffer;
+}
+
 export class UsePdfMaker implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'UsePDFMaker',
@@ -163,13 +221,17 @@ export class UsePdfMaker implements INodeType {
 				);
 
 				const fullResponse = response as { body: ArrayBuffer; statusCode: number };
-				const responseData = Buffer.from(fullResponse.body);
+				const responseBody = Buffer.from(fullResponse.body);
+				const responseData = await resolvePdfBuffer.call(this, responseBody);
 
 				const binaryOutput = await this.helpers.prepareBinaryData(
 					responseData,
-					'output',
+					'output.pdf',
 					'application/pdf',
 				);
+				binaryOutput.fileName = 'output.pdf';
+				delete binaryOutput.fileExtension;
+				binaryOutput.mimeType = 'application/pdf';
 
 				returnData.push({
 					json: { success: true, operation },
