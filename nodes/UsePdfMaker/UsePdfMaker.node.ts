@@ -1,9 +1,11 @@
-import {
+﻿import {
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
 	NodeOperationError,
+NodeApiError,
+JsonObject,
 } from 'n8n-workflow';
 
 const API_BASE_URL = 'https://api.usepdfmaker.com';
@@ -246,10 +248,15 @@ export class UsePdfMaker implements INodeType {
 					});
 					continue;
 				}
-				throw error;
+				if (error instanceof NodeOperationError) {
+throw error;
+}
+throw new NodeApiError(this.getNode(), error as JsonObject);
 			}
 		}
 
 		return [returnData];
 	}
 }
+
+
